@@ -14,6 +14,13 @@ export enum LearningContentType {
   QUIZ = 'QUIZ',
 }
 
+export enum LearningLevel {
+  BEGINNER = 'Beginner',
+  GROWING = 'Growing',
+  ESTABLISHED = 'Established',
+  TRUSTED = 'Trusted',
+}
+
 @Entity('learning_content')
 export class LearningContent {
   @PrimaryGeneratedColumn('uuid')
@@ -22,8 +29,11 @@ export class LearningContent {
   @Column()
   title: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'text' })
   description: string;
+
+  @Column({ nullable: true, type: 'text' })
+  content: string;
 
   @Column({
     type: 'enum',
@@ -36,6 +46,18 @@ export class LearningContent {
 
   @Column({ nullable: true })
   url: string;
+
+  @Column({
+    type: 'enum',
+    enum: LearningLevel,
+  })
+  level: LearningLevel;
+
+  @Column({ nullable: true })
+  topic: string;
+
+  @Column('int', { default: 0 })
+  minCreditScore: number;
 
   @OneToMany(() => UserProgress, (userProgress) => userProgress.learningContent)
   userProgress: UserProgress[];

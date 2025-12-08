@@ -1,0 +1,155 @@
+{
+  "topics": [
+    {
+      "id": 1,
+      "title": "How Mukando Works: The Complete Guide",
+      "level": "Beginner",
+      "description": "Learn the fundamentals of rotating savings groups, their benefits, and how HiveFund digitizes traditional Mukando",
+      "keyPoints": [
+        "What Mukando is and its history",
+        "How rotation works",
+        "Benefits and risks",
+        "How HiveFund digitizes traditional Mukando"
+      ],
+      "estimatedDuration": "15-20 minutes",
+      "pointsReward": 10
+    },
+    {
+      "id": 2,
+      "title": "Building Your First Credit Score",
+      "level": "Beginner",
+      "description": "Understand how credit scores work in HiveFund and learn strategies to build your credit quickly",
+      "keyPoints": [
+        "What credit score means in HiveFund",
+        "How contributions build credit",
+        "Credit score ranges and what they unlock",
+        "Tips for rapid credit building"
+      ],
+      "estimatedDuration": "15-20 minutes",
+      "pointsReward": 10
+    },
+    {
+      "id": 3,
+      "title": "Budgeting for Contributions",
+      "level": "Beginner",
+      "description": "Master the art of budgeting to ensure you can consistently contribute to your circles",
+      "keyPoints": [
+        "Creating a personal budget",
+        "Calculating affordable contribution amounts",
+        "Managing multiple circle commitments",
+        "Emergency fund planning"
+      ],
+      "estimatedDuration": "20-25 minutes",
+      "pointsReward": 15
+    },
+    {
+      "id": 4,
+      "title": "Managing Multiple Circles",
+      "level": "Growing",
+      "description": "Learn advanced strategies for participating in multiple savings circles simultaneously",
+      "keyPoints": [
+        "Strategies for managing 2+ circles",
+        "Timing your payouts for maximum benefit",
+        "Risk management across circles",
+        "Balancing commitments"
+      ],
+      "estimatedDuration": "20-25 minutes",
+      "pointsReward": 20
+    },
+    {
+      "id": 5,
+      "title": "When to Take Your First Loan",
+      "level": "Growing",
+      "description": "Understand loan eligibility, types, and when taking a loan makes financial sense",
+      "keyPoints": [
+        "Loan eligibility requirements",
+        "When loans make sense vs. when to wait",
+        "Loan types available in HiveFund",
+        "Calculating loan affordability"
+      ],
+      "estimatedDuration": "20-25 minutes",
+      "pointsReward": 20
+    },
+    {
+      "id": 6,
+      "title": "Side Hustle Pricing Strategies",
+      "level": "Growing",
+      "description": "Learn how to price your products and services competitively in the Zimbabwean market",
+      "keyPoints": [
+        "Pricing your products/services",
+        "Cost calculation and profit margins",
+        "Competitive pricing in Zimbabwean market",
+        "Value-based pricing strategies"
+      ],
+      "estimatedDuration": "25-30 minutes",
+      "pointsReward": 25
+    },
+    {
+      "id": 7,
+      "title": "Loan Repayment Strategies",
+      "level": "Established",
+      "description": "Master effective loan repayment strategies to build credit and avoid penalties",
+      "keyPoints": [
+        "Creating repayment plans",
+        "Prioritizing loan payments",
+        "Avoiding default and penalties",
+        "Building credit through timely repayment"
+      ],
+      "estimatedDuration": "25-30 minutes",
+      "pointsReward": 30
+    },
+    {
+      "id": 8,
+      "title": "Scaling Your Hustle",
+      "level": "Established",
+      "description": "Learn when and how to scale your business for sustainable growth",
+      "keyPoints": [
+        "When and how to scale",
+        "Reinvesting profits",
+        "Hiring and delegation",
+        "Market expansion strategies"
+      ],
+      "estimatedDuration": "30-35 minutes",
+      "pointsReward": 35
+    },
+    {
+      "id": 9,
+      "title": "Advanced Investment Strategies",
+      "level": "Trusted",
+      "description": "Explore sophisticated investment strategies for building long-term wealth",
+      "keyPoints": [
+        "Diversification strategies",
+        "Long-term vs. short-term investments",
+        "Risk management for investments",
+        "Building investment portfolios"
+      ],
+      "estimatedDuration": "35-40 minutes",
+      "pointsReward": 40
+    },
+    {
+      "id": 10,
+      "title": "Business Growth Planning",
+      "level": "Trusted",
+      "description": "Develop comprehensive business growth plans with financial projections and strategic milestones",
+      "keyPoints": [
+        "Business planning and forecasting",
+        "Financial projections",
+        "Growth milestones and metrics",
+        "Exit strategies and succession planning"
+      ],
+      "estimatedDuration": "40-45 minutes",
+      "pointsReward": 50
+    }
+  ],
+  "summary": {
+    "totalTopics": 10,
+    "byLevel": {
+      "Beginner": 3,
+      "Growing": 3,
+      "Established": 2,
+      "Trusted": 2
+    },
+    "totalPointsAvailable": 265
+  }
+}
+
