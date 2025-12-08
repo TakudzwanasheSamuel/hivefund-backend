@@ -16,6 +16,21 @@ export class CreditService {
     private creditHistoryRepository: Repository<CreditHistory>,
   ) {}
 
+  async getCreditScore(userId: string) {
+    const creditScore = await this.creditScoreRepository.findOne({
+      where: { userId },
+    });
+
+    if (!creditScore) {
+      return { score: 0, tier: 'New' };
+    }
+
+    return {
+      score: creditScore.score,
+      tier: creditScore.tier,
+    };
+  }
+
   async updateScore(userId: string, reason: string, points: number = 5) {
     // Find or create credit score for user
     let creditScore = await this.creditScoreRepository.findOne({

@@ -1,6 +1,6 @@
 import { IsString, IsNotEmpty, IsNumber, Min, IsEnum, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { LearningContentType } from '../entities/learning-content.entity';
+import { LearningContentType, LearningLevel } from '../entities/learning-content.entity';
 
 export class CreateContentDto {
   @ApiProperty({
@@ -39,6 +39,15 @@ export class CreateContentDto {
   description?: string;
 
   @ApiProperty({
+    example: 'Detailed text content explaining the topic...',
+    description: 'Full text content for the lesson',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  content?: string;
+
+  @ApiProperty({
     example: 'https://example.com/video',
     description: 'Content URL',
     required: false,
@@ -46,5 +55,32 @@ export class CreateContentDto {
   @IsString()
   @IsOptional()
   url?: string;
+
+  @ApiProperty({
+    example: 'Beginner',
+    description: 'Learning level',
+    enum: LearningLevel,
+  })
+  @IsEnum(LearningLevel)
+  @IsNotEmpty()
+  level: LearningLevel;
+
+  @ApiProperty({
+    example: 'Mukando Basics',
+    description: 'Content topic/category',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  topic?: string;
+
+  @ApiProperty({
+    example: 0,
+    description: 'Minimum credit score required to access this content',
+    default: 0,
+  })
+  @IsNumber()
+  @IsOptional()
+  minCreditScore?: number;
 }
 
