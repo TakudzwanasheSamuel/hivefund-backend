@@ -1,34 +1,30 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { LoansService } from './loans.service';
-import { CreateLoanDto } from './dto/create-loan.dto';
-import { UpdateLoanDto } from './dto/update-loan.dto';
+import { ApplyLoanDto } from './dto/apply-loan.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { GetUser } from '../auth/decorators/get-user.decorator';
 
+@ApiTags('Loans')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('loans')
 export class LoansController {
   constructor(private readonly loansService: LoansService) {}
 
-  @Post()
-  create(@Body() createLoanDto: CreateLoanDto) {
-    return this.loansService.create(createLoanDto);
+  @Get('eligibility')
+  checkEligibility(@GetUser() user: any) {
+    return this.loansService.checkEligibility(user.userId);
   }
 
-  @Get()
-  findAll() {
-    return this.loansService.findAll();
+  @ApiBody({ type: ApplyLoanDto })
+  @Post('apply')
+  apply(@Body() applyLoanDto: ApplyLoanDto, @GetUser() user: any) {
+    return this.loansService.apply(applyLoanDto, user.userId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.loansService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateLoanDto: UpdateLoanDto) {
-    return this.loansService.update(+id, updateLoanDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.loansService.remove(+id);
+  @Get('my-loans')
+  getMyLoans(@GetUser() user: any) {
+    return this.loansService.getMyLoans(user.userId);
   }
 }

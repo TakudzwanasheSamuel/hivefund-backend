@@ -8,15 +8,23 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import { LearningContent } from './learning-content.entity';
 
-@Entity('user_progress')
-export class UserProgress {
+@Entity('push_subscriptions')
+export class PushSubscription {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'timestamptz' })
-  completedAt: Date;
+  @Column()
+  endpoint: string;
+
+  @Column('jsonb')
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+
+  @Column({ type: 'timestamptz', nullable: true })
+  expirationTime: Date | null;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'userId' })
@@ -24,13 +32,6 @@ export class UserProgress {
 
   @Column()
   userId: string;
-
-  @ManyToOne(() => LearningContent, (learningContent) => learningContent.userProgress)
-  @JoinColumn({ name: 'learningContentId' })
-  learningContent: LearningContent;
-
-  @Column()
-  learningContentId: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

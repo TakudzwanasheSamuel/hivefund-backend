@@ -12,6 +12,11 @@ import { User } from '../../users/entities/user.entity';
 import { Booking } from './booking.entity';
 import { Rating } from './rating.entity';
 
+export enum GigStatus {
+  OPEN = 'OPEN',
+  CLOSED = 'CLOSED',
+}
+
 @Entity('gigs')
 export class Gig {
   @PrimaryGeneratedColumn('uuid')
@@ -20,11 +25,21 @@ export class Gig {
   @Column()
   title: string;
 
+  @Column({ nullable: true })
+  description: string;
+
   @Column('decimal', { precision: 10, scale: 2 })
-  rate: number;
+  price: number;
 
   @Column()
   category: string;
+
+  @Column({
+    type: 'enum',
+    enum: GigStatus,
+    default: GigStatus.OPEN,
+  })
+  status: GigStatus;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'providerId' })

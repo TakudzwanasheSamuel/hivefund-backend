@@ -1,34 +1,41 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { MarketplaceService } from './marketplace.service';
-import { CreateMarketplaceDto } from './dto/create-marketplace.dto';
-import { UpdateMarketplaceDto } from './dto/update-marketplace.dto';
+import { CreateGigDto } from './dto/create-gig.dto';
+import { BookGigDto } from './dto/book-gig.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { GetUser } from '../auth/decorators/get-user.decorator';
 
+@ApiTags('Marketplace')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('marketplace')
 export class MarketplaceController {
   constructor(private readonly marketplaceService: MarketplaceService) {}
 
-  @Post()
-  create(@Body() createMarketplaceDto: CreateMarketplaceDto) {
-    return this.marketplaceService.create(createMarketplaceDto);
-  }
-
-  @Get()
+  @Get('gigs')
   findAll() {
     return this.marketplaceService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.marketplaceService.findOne(+id);
+  @ApiBody({ type: CreateGigDto })
+  @Post('gigs')
+  createGig(@Body() createGigDto: CreateGigDto, @GetUser() user: any) {
+    return this.marketplaceService.createGig(user, createGigDto);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateMarketplaceDto: UpdateMarketplaceDto) {
-    return this.marketplaceService.update(+id, updateMarketplaceDto);
+  @ApiBody({ type: BookGigDto })
+  @Post('gigs/:id/book')
+  bookGig(
+    @Param('id') id: string,
+    @Body() bookGigDto: BookGigDto,
+    @GetUser() user: any,
+  ) {
+    return this.marketplaceService.bookGig(user, id, bookGigDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.marketplaceService.remove(+id);
+  @Get('bookings/as-provider')
+  getProviderBookings(@GetUser() user: any) {
+    return this.marketplaceService.getProviderBookings(user.userId);
   }
 }

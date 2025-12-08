@@ -31,6 +31,9 @@ export class Order {
   })
   status: OrderStatus;
 
+  @Column()
+  customerPhone: string;
+
   @ManyToOne(() => Storefront, (storefront) => storefront.orders)
   @JoinColumn({ name: 'storefrontId' })
   storefront: Storefront;

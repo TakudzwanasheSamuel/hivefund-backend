@@ -1,34 +1,37 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { LearningService } from './learning.service';
-import { CreateLearningDto } from './dto/create-learning.dto';
-import { UpdateLearningDto } from './dto/update-learning.dto';
+import { CreateContentDto } from './dto/create-content.dto';
+import { CompleteModuleDto } from './dto/complete-module.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { GetUser } from '../auth/decorators/get-user.decorator';
 
+@ApiTags('Learning')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('learning')
 export class LearningController {
   constructor(private readonly learningService: LearningService) {}
 
-  @Post()
-  create(@Body() createLearningDto: CreateLearningDto) {
-    return this.learningService.create(createLearningDto);
+  @ApiBody({ type: CreateContentDto })
+  @Post('content')
+  createContent(@Body() createContentDto: CreateContentDto) {
+    return this.learningService.createContent(createContentDto);
   }
 
-  @Get()
-  findAll() {
-    return this.learningService.findAll();
+  @Get('content')
+  getAllContent() {
+    return this.learningService.getAllContent();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.learningService.findOne(+id);
+  @ApiBody({ type: CompleteModuleDto })
+  @Post('progress')
+  markComplete(@Body() completeModuleDto: CompleteModuleDto, @GetUser() user: any) {
+    return this.learningService.markComplete(user, completeModuleDto);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateLearningDto: UpdateLearningDto) {
-    return this.learningService.update(+id, updateLearningDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.learningService.remove(+id);
+  @Get('my-progress')
+  getUserProgress(@GetUser() user: any) {
+    return this.learningService.getUserProgress(user.userId);
   }
 }

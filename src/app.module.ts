@@ -27,6 +27,8 @@ import { Booking } from "../marketplace/entities/booking.entity";
 import { Rating } from "../marketplace/entities/rating.entity";
 import { LearningContent } from "../learning/entities/learning-content.entity";
 import { UserProgress } from "../learning/entities/user-progress.entity";
+import { Notification } from "../notifications/entities/notification.entity";
+import { PushSubscription } from "../notifications/entities/push-subscription.entity";
 import { Session } from "../auth/entities/session.entity";
 import { VerificationCode } from "../auth/entities/verification-code.entity";
 
@@ -42,9 +44,13 @@ import { MarketplaceModule } from "../marketplace/marketplace.module";
 import { LearningModule } from "../learning/learning.module";
 import { AnalyticsModule } from "../analytics/analytics.module";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { TasksModule } from "../tasks/tasks.module";
 
 @Module({
     imports: [
+        // Task Scheduler (must be imported early)
+        ScheduleModule.forRoot(),
+
         // Load environment variables
         ConfigModule.forRoot({
             isGlobal: true,
@@ -75,7 +81,6 @@ import { NotificationsModule } from "../notifications/notifications.module";
                         Cycle,
                         PayoutSchedule,
                         ExitRequest,
-                        ExitRequestVote,
                         Transaction,
                         Subscription,
                         Contribution,

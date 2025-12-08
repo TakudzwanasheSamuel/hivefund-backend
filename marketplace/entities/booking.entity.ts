@@ -12,7 +12,7 @@ import { Gig } from './gig.entity';
 
 export enum BookingStatus {
   PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
+  ACCEPTED = 'ACCEPTED',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
 }
@@ -30,7 +30,10 @@ export class Booking {
   status: BookingStatus;
 
   @Column({ type: 'timestamptz' })
-  date: Date;
+  bookingDate: Date;
+
+  @Column({ nullable: true })
+  notes: string;
 
   @ManyToOne(() => Gig, (gig) => gig.bookings)
   @JoinColumn({ name: 'gigId' })

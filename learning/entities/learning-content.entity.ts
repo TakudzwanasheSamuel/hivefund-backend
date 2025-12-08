@@ -11,6 +11,7 @@ import { UserProgress } from './user-progress.entity';
 export enum LearningContentType {
   VIDEO = 'VIDEO',
   ARTICLE = 'ARTICLE',
+  QUIZ = 'QUIZ',
 }
 
 @Entity('learning_content')
@@ -21,6 +22,9 @@ export class LearningContent {
   @Column()
   title: string;
 
+  @Column({ nullable: true })
+  description: string;
+
   @Column({
     type: 'enum',
     enum: LearningContentType,
@@ -29,6 +33,9 @@ export class LearningContent {
 
   @Column('int')
   pointsReward: number;
+
+  @Column({ nullable: true })
+  url: string;
 
   @OneToMany(() => UserProgress, (userProgress) => userProgress.learningContent)
   userProgress: UserProgress[];

@@ -1,34 +1,48 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { StorefrontService } from './storefront.service';
-import { CreateStorefrontDto } from './dto/create-storefront.dto';
-import { UpdateStorefrontDto } from './dto/update-storefront.dto';
+import { CreateStoreDto } from './dto/create-store.dto';
+import { AddProductDto } from './dto/add-product.dto';
+import { PlaceOrderDto } from './dto/place-order.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { GetUser } from '../auth/decorators/get-user.decorator';
 
-@Controller('storefront')
+@ApiTags('Storefront')
+@Controller('storefronts')
 export class StorefrontController {
   constructor(private readonly storefrontService: StorefrontService) {}
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiBody({ type: CreateStoreDto })
   @Post()
-  create(@Body() createStorefrontDto: CreateStorefrontDto) {
-    return this.storefrontService.create(createStorefrontDto);
+  createStore(@Body() createStoreDto: CreateStoreDto, @GetUser() user: any) {
+    return this.storefrontService.createStore(user, createStoreDto);
   }
 
-  @Get()
-  findAll() {
-    return this.storefrontService.findAll();
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiBody({ type: AddProductDto })
+  @Post('products')
+  addProduct(@Body() addProductDto: AddProductDto, @GetUser() user: any) {
+    return this.storefrontService.addProduct(user, addProductDto);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.storefrontService.findOne(+id);
+  @Get('public/:slug')
+  getPublicView(@Param('slug') slug: string) {
+    return this.storefrontService.getPublicView(slug);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateStorefrontDto: UpdateStorefrontDto) {
-    return this.storefrontService.update(+id, updateStorefrontDto);
+  @ApiBody({ type: PlaceOrderDto })
+  @Post(':id/orders')
+  placeOrder(@Param('id') id: string, @Body() placeOrderDto: PlaceOrderDto) {
+    return this.storefrontService.placeOrder(id, placeOrderDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.storefrontService.remove(+id);
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('analytics')
+  getAnalytics(@GetUser() user: any) {
+    return this.storefrontService.getAnalytics(user);
   }
 }

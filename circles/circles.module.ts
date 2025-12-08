@@ -18,7 +18,6 @@ import { User } from "../users/entities/user.entity";
             Cycle,
             PayoutSchedule,
             ExitRequest,
-            ExitRequestVote,
             User,
         ]),
     ],

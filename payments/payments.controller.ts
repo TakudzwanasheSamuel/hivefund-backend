@@ -1,11 +1,23 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { ApiTags, ApiBody } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { SimulatePaymentDto } from './dto/simulate-payment.dto';
 
+@ApiTags('Payments')
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
+
+  @ApiBody({ type: SimulatePaymentDto })
+  @Post('simulate')
+  async simulate(@Body() simulatePaymentDto: SimulatePaymentDto) {
+    return this.paymentsService.processContribution(
+      simulatePaymentDto.userId,
+      simulatePaymentDto.amount,
+    );
+  }
 
   @Post()
   create(@Body() createPaymentDto: CreatePaymentDto) {
