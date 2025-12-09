@@ -5,11 +5,12 @@ import { LearningService } from './learning.service';
 import { LearningController } from './learning.controller';
 import { LearningContent } from './entities/learning-content.entity';
 import { UserProgress } from './entities/user-progress.entity';
+import { Transaction } from '../payments/entities/transaction.entity';
 import { CreditModule } from '../credit/credit.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([LearningContent, UserProgress]),
+    TypeOrmModule.forFeature([LearningContent, UserProgress, Transaction]),
     CreditModule,
     ConfigModule,
   ],
