@@ -62,11 +62,9 @@ import { TasksModule } from "../tasks/tasks.module";
         TypeOrmModule.forRootAsync({
             imports: [ConfigModule],
             useFactory: (configService: ConfigService) => {
-                // Debug: Log DATABASE_USER to verify .env is being read
-                console.log(
-                    "DATABASE_USER:",
-                    configService.get("DATABASE_USER")
-                );
+                const useSSL = configService.get<boolean>("DATABASE_SSL");
+
+                console.log("🔌 Connecting to Supabase PostgreSQL...");
 
                 return {
                     type: "postgres",
@@ -75,6 +73,11 @@ import { TasksModule } from "../tasks/tasks.module";
                     username: configService.get<string>("DATABASE_USER"),
                     password: configService.get<string>("DATABASE_PASSWORD"),
                     database: configService.get<string>("DATABASE_NAME"),
+                    ssl: useSSL
+                        ? {
+                              rejectUnauthorized: false, // Required for Supabase
+                          }
+                        : false,
                     entities: [
                         User,
                         Circle,
@@ -82,6 +85,7 @@ import { TasksModule } from "../tasks/tasks.module";
                         Cycle,
                         PayoutSchedule,
                         ExitRequest,
+                        ExitRequestVote,
                         Transaction,
                         Subscription,
                         Contribution,
