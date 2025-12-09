@@ -14,6 +14,8 @@ import { CreateContentDto } from './dto/create-content.dto';
 import { CompleteModuleDto } from './dto/complete-module.dto';
 import { GenerateLessonDto } from './dto/generate-lesson.dto';
 import { AskQuestionDto } from './dto/ask-question.dto';
+import { CreateBudgetDto } from './dto/create-budget.dto';
+import { BudgetAnswersDto } from './dto/budget-answers.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { LearningLevel } from './entities/learning-content.entity';
@@ -652,5 +654,121 @@ export class LearningController {
     @GetUser() user?: any,
   ) {
     return this.learningService.answerQuestion(askQuestionDto, user?.userId);
+  }
+
+  @Get('budget/questions')
+  @ApiOperation({ 
+    summary: 'Get Budget Questions - Step 1',
+    description: 'Get structured questions to collect user information for budget creation. This endpoint automatically retrieves the user\'s current balance and credit score, then returns a list of questions for the user to answer. After collecting answers, use POST /learning/budget/generate to create the spending plan.'
+  })
+  @ApiOkResponse({ 
+    description: 'Questions retrieved successfully with user balance and credit info',
+    schema: {
+      example: {
+        userBalance: 500.00,
+        userCreditScore: 250,
+        userLevel: 'Beginner',
+        questions: [
+          {
+            id: 'monthly_income',
+            question: 'What is your monthly income?',
+            type: 'number',
+            required: true,
+            placeholder: 'Enter your monthly income in USD',
+            helpText: 'Include all sources of income: salary, business, side hustles, etc.'
+          },
+          {
+            id: 'expenses',
+            question: 'What are your monthly expenses?',
+            type: 'expense_list',
+            required: true,
+            helpText: 'List all your monthly expenses. Click "Add Expense" to add more.',
+            example: [
+              { category: 'Rent', amount: 500, priority: 'Essential' },
+              { category: 'Food', amount: 300, priority: 'Essential' }
+            ]
+          }
+        ]
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  getBudgetQuestions(@GetUser() user?: any) {
+    return this.learningService.getBudgetQuestions(user?.userId);
+  }
+
+  @Post('budget/generate')
+  @ApiOperation({ 
+    summary: 'Generate Spending Plan - Step 2',
+    description: 'Submit your answers to the budget questions and receive a comprehensive spending plan. The AI analyzes your income, expenses, goals, and interests to create a personalized plan on how to spend your money wisely and achieve your financial goals.'
+  })
+  @ApiBody({ 
+    type: BudgetAnswersDto,
+    description: 'Your answers to the budget questions'
+  })
+  @ApiOkResponse({ 
+    description: 'Spending plan generated successfully',
+    schema: {
+      example: {
+        userBalance: 500.00,
+        userCreditScore: 250,
+        userLevel: 'Beginner',
+        budgetName: 'My Budget',
+        userInput: {
+          monthlyIncome: 2000,
+          expenses: [
+            { category: 'Rent', amount: 500, priority: 'Essential' },
+            { category: 'Food', amount: 300, priority: 'Essential' }
+          ],
+          totalExpenses: 800,
+          financialGoals: 'Save for a laptop',
+          interests: 'Starting a business'
+        },
+        budget_summary: 'Based on your monthly income of $2000 and expenses of $800...',
+        monthly_breakdown: {
+          income: 2000,
+          total_expenses: 800,
+          savings_amount: 1200,
+          remaining_amount: 1200,
+          savings_percentage: 60.0
+        },
+        spending_plan: {
+          essential_expenses: { total: 800, breakdown: [] },
+          savings_allocation: { amount: 1200, strategy: 'Save 60% for goals' }
+        },
+        expense_analysis: [],
+        savings_strategy: 'Detailed savings strategy...',
+        spending_recommendations: [
+          'Allocate 50% to essential expenses',
+          'Save 30% for your financial goals',
+          'Use 20% for discretionary spending'
+        ],
+        action_plan: [
+          'Set up automatic savings transfer',
+          'Track expenses daily',
+          'Review budget weekly'
+        ],
+        tips: [
+          'Build an emergency fund first',
+          'Consider joining a HiveFund circle',
+          'Track all expenses'
+        ],
+        warnings: [],
+        next_steps: [
+          'Review the spending plan',
+          'Start implementing the budget',
+          'Set up expense tracking'
+        ],
+        created_at: '2024-01-01T00:00:00.000Z'
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Invalid request or OpenAI API error' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  generateBudgetPlan(
+    @Body() budgetAnswersDto: BudgetAnswersDto,
+    @GetUser() user?: any,
+  ) {
+    return this.learningService.generateBudgetPlan(budgetAnswersDto, user?.userId);
   }
 }

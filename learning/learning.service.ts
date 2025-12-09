@@ -11,10 +11,13 @@ import { CreateContentDto } from './dto/create-content.dto';
 import { CompleteModuleDto } from './dto/complete-module.dto';
 import { GenerateLessonDto } from './dto/generate-lesson.dto';
 import { AskQuestionDto } from './dto/ask-question.dto';
+import { CreateBudgetDto } from './dto/create-budget.dto';
+import { BudgetAnswersDto } from './dto/budget-answers.dto';
 import { LearningContent, LearningLevel } from './entities/learning-content.entity';
 import { UserProgress } from './entities/user-progress.entity';
 import { CreditService } from '../credit/credit.service';
 import { User } from '../users/entities/user.entity';
+import { Transaction, TransactionType, TransactionStatus } from '../payments/entities/transaction.entity';
 
 @Injectable()
 export class LearningService {
@@ -25,12 +28,18 @@ export class LearningService {
     private learningContentRepository: Repository<LearningContent>,
     @InjectRepository(UserProgress)
     private userProgressRepository: Repository<UserProgress>,
+    @InjectRepository(Transaction)
+    private transactionRepository: Repository<Transaction>,
     private creditService: CreditService,
     private configService: ConfigService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     if (apiKey) {
-      this.openai = new OpenAI({ apiKey });
+      this.openai = new OpenAI({ 
+        apiKey,
+        timeout: 120000, // 2 minute timeout
+        maxRetries: 1, // Single retry for speed
+      });
     }
   }
 
@@ -389,6 +398,11 @@ export class LearningService {
       throw new BadRequestException('OpenAI API key is not configured');
     }
 
+    // Validate OpenAI client is properly initialized
+    if (!this.configService.get<string>('OPENAI_API_KEY')) {
+      throw new BadRequestException('OpenAI API key is missing from configuration');
+    }
+
     // Get user's credit score to determine appropriate difficulty
     let userCreditScore = 0;
     let userLevel = LearningLevel.BEGINNER;
@@ -411,31 +425,23 @@ export class LearningService {
     // Use provided difficulty or user's level
     const difficulty = dto.difficultyLevel || userLevel;
 
-    const systemPrompt = `You are an expert financial education instructor specializing in teaching youth about financial inclusion, savings groups (Mukando/ROSCAs), credit building, and entrepreneurship in Zimbabwe. 
+    const systemPrompt = `You are a financial education instructor for HiveFund (digitizes Mukando for Zimbabwean youth). Create practical, concise lessons.
 
-Create comprehensive, practical, and engaging lesson content that is:
-- Detailed and thorough (not brief - provide extensive explanations)
-- Practical with real-world examples
-- Culturally relevant to Zimbabwe
-- Actionable with clear steps
-- Appropriate for the specified difficulty level
-- Include video recommendations for visual learners
-
-Always structure your response as valid JSON with these exact fields:
+Structure your response as JSON with these fields:
 - title: A clear, engaging lesson title
-- overview: A detailed 4-6 sentence summary of what the lesson covers
-- detailed_content: EXTENSIVE teaching content (8-12 paragraphs minimum) explaining the concept thoroughly with in-depth explanations, breaking down complex concepts, providing context, and ensuring complete understanding
-- examples: An array of 4-6 detailed practical examples with explanations, showing real-world scenarios relevant to the topic
-- steps: An array of 5-8 detailed actionable steps the learner can take, with explanations for each step
-- quiz_questions: An array of 5-7 quiz questions with detailed correct answers and explanations
-- summary: A comprehensive recap of all key takeaways (5-7 points)
-- real_world_use_case: A detailed, specific scenario (2-3 paragraphs) showing how this applies in Zimbabwe with names, situations, and outcomes
-- recommended_videos: An array of 3-5 video recommendations with titles, descriptions, and YouTube URLs (use actual relevant YouTube video IDs or search for relevant educational videos about the topic)
-- additional_resources: An array of 2-3 additional learning resources (articles, tools, calculators) with descriptions and URLs
-- key_terms: An array of important terms with definitions relevant to the topic
+- overview: A brief 2-3 sentence summary
+- detailed_content: Teaching content (3-5 paragraphs) explaining the concept clearly and concisely
+- examples: An array of 2-3 practical examples with titles and brief descriptions
+- steps: An array of 3-4 actionable steps with brief explanations
+- quiz_questions: An array of 3-4 quiz questions with answers
+- summary: A recap of 3-4 key takeaways
+- real_world_use_case: A brief scenario (1 paragraph) showing how this applies in Zimbabwe
+- recommended_videos: An array of 2 video recommendations with titles and YouTube URLs
+- additional_resources: An array of 2 resources with descriptions and URLs
+- key_terms: An array of 3-4 important terms with definitions
 - difficulty_level: The difficulty level (Beginner, Growing, Established, or Trusted)
 
-Make the content comprehensive, detailed, and immediately applicable. Provide extensive explanations, not brief summaries.`;
+Keep content concise, practical, and focused. Prioritize clarity over length.`;
 
     const userPrompt = `Generate a COMPREHENSIVE and DETAILED lesson about: "${dto.topic}"
 
@@ -446,17 +452,17 @@ ${userId ? `User Credit Score: ${userCreditScore} (${userLevel})` : ''}
 Context: This is for HiveFund, a platform that digitizes Mukando (rotating savings groups) and helps youth build credit scores through consistent participation. The platform includes features for savings circles, micro-loans, storefronts, gig marketplace, and financial literacy.
 
 IMPORTANT REQUIREMENTS:
-1. Provide EXTENSIVE detailed_content (8-12 paragraphs minimum) - break down complex concepts, provide thorough explanations, include context and background information
-2. Include 4-6 detailed examples with titles, descriptions, and key learning points
-3. Provide 5-8 detailed steps with explanations for each step
-4. Include 5-7 quiz questions with detailed answers and explanations
-5. Provide comprehensive summary with 5-7 key takeaways
-6. Include detailed real-world use case (2-3 paragraphs) with specific names, situations, and outcomes from Zimbabwe
-7. Recommend 3-5 relevant YouTube videos with titles, descriptions, URLs, duration, and channel names (use actual relevant video IDs or search for educational videos about the topic)
-8. Include 2-3 additional resources (guides, tools, articles) with descriptions and URLs
-9. Define 5-7 key terms with clear definitions
+1. Provide detailed_content (3-5 paragraphs) - clear, concise explanations
+2. Include 2-3 practical examples with titles
+3. Provide 3-4 actionable steps
+4. Include 3-4 quiz questions with answers
+5. Provide summary with 3-4 key takeaways
+6. Include brief real-world use case (1 paragraph) with Zimbabwean context
+7. Recommend 2 relevant YouTube videos with titles and URLs
+8. Include 2 additional resources with URLs
+9. Define 3-4 key terms
 
-Make the content comprehensive, detailed, and immediately applicable. Provide extensive explanations, not brief summaries. The user wants thorough, educational content that fully explains the topic.`;
+Keep responses concise and practical. Focus on essential information only.`;
 
     try {
       const completion = await this.openai.chat.completions.create({
@@ -466,8 +472,8 @@ Make the content comprehensive, detailed, and immediately applicable. Provide ex
           { role: 'user', content: userPrompt },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.7,
-        max_tokens: 4000,
+        temperature: 0.5, // Lower temperature for faster, more deterministic responses
+        max_tokens: 1500, // Reduced for faster generation
       });
 
       const responseContent = completion.choices[0]?.message?.content;
@@ -510,8 +516,18 @@ Make the content comprehensive, detailed, and immediately applicable. Provide ex
       if (error instanceof SyntaxError) {
         throw new BadRequestException('Invalid response format from AI service');
       }
+      
+      // Handle OpenAI API errors more gracefully
+      if (error?.message?.includes('Connection') || error?.message?.includes('timeout')) {
+        throw new BadRequestException(
+          'AI service is temporarily unavailable. Please try again in a moment.',
+        );
+      }
+      
+      // Log the actual error for debugging but return user-friendly message
+      console.error('OpenAI API Error:', error);
       throw new BadRequestException(
-        `Failed to generate lesson: ${error.message}`,
+        `Failed to generate lesson: ${error?.message || 'Unknown error'}`,
       );
     }
   }
@@ -656,22 +672,15 @@ Make the content comprehensive, detailed, and immediately applicable. Provide ex
       }
     }
 
-    const systemPrompt = `You are a helpful financial advisor and educator specializing in HiveFund, a platform that digitizes Mukando (rotating savings groups) for Zimbabwean youth. You help users understand:
-
-- Mukando and rotating savings groups
-- Credit building and credit scores
-- Loans and repayment
-- Business and entrepreneurship
-- Financial planning and budgeting
-- Investment strategies
-
-Provide clear, practical, and culturally relevant answers. Be concise but comprehensive. If the question is about HiveFund specifically, explain how the platform works. Always provide actionable advice.
+    const systemPrompt = `You are a financial advisor for HiveFund (digitizes Mukando for Zimbabwean youth). Provide concise, practical answers.
 
 Structure your response as JSON with:
-- answer: A clear, direct answer to the question (2-4 paragraphs)
-- key_points: An array of 3-5 key takeaways
-- actionable_steps: An array of 2-4 steps the user can take
-- related_topics: An array of 2-3 related topics they might want to learn about`;
+- answer: A clear answer (1-2 paragraphs)
+- key_points: An array of 2-3 key takeaways
+- actionable_steps: An array of 2-3 steps
+- related_topics: An array of 2 related topics
+
+Keep responses brief and actionable.`;
 
     const userPrompt = `Question: "${dto.question}"
 ${dto.context ? `Context: ${dto.context}` : ''}
@@ -687,8 +696,8 @@ Please provide a helpful, practical answer that's relevant to HiveFund and finan
           { role: 'user', content: userPrompt },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.7,
-        max_tokens: 1500,
+        temperature: 0.5, // Lower temperature for faster responses
+        max_tokens: 800, // Reduced for faster generation
       });
 
       const responseContent = completion.choices[0]?.message?.content;
@@ -715,8 +724,399 @@ Please provide a helpful, practical answer that's relevant to HiveFund and finan
       if (error instanceof SyntaxError) {
         throw new BadRequestException('Invalid response format from AI service');
       }
+      
+      // Handle OpenAI API errors more gracefully
+      if (error?.message?.includes('Connection') || error?.message?.includes('timeout')) {
+        throw new BadRequestException(
+          'AI service is temporarily unavailable. Please try again in a moment.',
+        );
+      }
+      
+      console.error('OpenAI API Error:', error);
       throw new BadRequestException(
-        `Failed to answer question: ${error.message}`,
+        `Failed to answer question: ${error?.message || 'Unknown error'}`,
+      );
+    }
+  }
+
+  // Get user balance from transactions
+  private async getUserBalance(userId: string): Promise<number> {
+    const transactions = await this.transactionRepository.find({
+      where: {
+        userId,
+        status: TransactionStatus.COMPLETED,
+      },
+    });
+
+    // Calculate balance: contributions are negative (money out), loans are positive (money in)
+    let balance = 0;
+    transactions.forEach((transaction) => {
+      if (transaction.type === TransactionType.CONTRIBUTION) {
+        balance -= Number(transaction.amount);
+      } else if (transaction.type === TransactionType.LOAN) {
+        balance += Number(transaction.amount);
+      }
+    });
+
+    return Math.max(0, balance); // Don't return negative balance
+  }
+
+  // Get budget questions (step 1)
+  async getBudgetQuestions(userId?: string) {
+    if (!this.openai) {
+      throw new BadRequestException('OpenAI API key is not configured');
+    }
+
+    // Get user's current balance
+    let userBalance = 0;
+    let userCreditScore = 0;
+    let userLevel = LearningLevel.BEGINNER;
+    
+    if (userId) {
+      userBalance = await this.getUserBalance(userId);
+      const creditInfo = await this.creditService.getCreditScore(userId);
+      userCreditScore = creditInfo.score;
+      
+      if (userCreditScore >= 700) {
+        userLevel = LearningLevel.TRUSTED;
+      } else if (userCreditScore >= 500) {
+        userLevel = LearningLevel.ESTABLISHED;
+      } else if (userCreditScore >= 300) {
+        userLevel = LearningLevel.GROWING;
+      } else {
+        userLevel = LearningLevel.BEGINNER;
+      }
+    }
+
+    // Return structured questions
+    return {
+      userBalance: userId ? userBalance : null,
+      userCreditScore: userId ? userCreditScore : null,
+      userLevel: userId ? userLevel : null,
+      questions: [
+        {
+          id: 'monthly_income',
+          question: 'What is your monthly income?',
+          type: 'number',
+          required: true,
+          placeholder: 'Enter your monthly income in USD',
+          helpText: 'Include all sources of income: salary, business, side hustles, etc.',
+        },
+        {
+          id: 'expenses',
+          question: 'What are your monthly expenses?',
+          type: 'expense_list',
+          required: true,
+          helpText: 'List all your monthly expenses. Click "Add Expense" to add more.',
+          example: [
+            { category: 'Rent', amount: 500, priority: 'Essential' },
+            { category: 'Food', amount: 300, priority: 'Essential' },
+            { category: 'Transport', amount: 100, priority: 'Important' },
+          ],
+        },
+        {
+          id: 'financial_goals',
+          question: 'What are your financial goals?',
+          type: 'text',
+          required: false,
+          placeholder: 'e.g., Save for a laptop, start a business, build emergency fund',
+          helpText: 'Describe what you want to achieve financially in the next few months.',
+        },
+        {
+          id: 'interests',
+          question: 'What are your interests or plans?',
+          type: 'text',
+          required: false,
+          placeholder: 'e.g., Starting a business, learning new skills, investing',
+          helpText: 'Tell us about your interests or plans that might affect your spending.',
+        },
+        {
+          id: 'budget_name',
+          question: 'What would you like to name this budget?',
+          type: 'text',
+          required: false,
+          placeholder: 'e.g., Monthly Budget, January Budget',
+          helpText: 'Give your budget a name to help you identify it later.',
+        },
+      ],
+    };
+  }
+
+  // Generate budget plan from answers (step 2)
+  async generateBudgetPlan(dto: BudgetAnswersDto, userId?: string) {
+    if (!this.openai) {
+      throw new BadRequestException('OpenAI API key is not configured');
+    }
+
+    // Get user's current balance
+    let userBalance = 0;
+    let userCreditScore = 0;
+    let userLevel = LearningLevel.BEGINNER;
+    
+    if (userId) {
+      userBalance = await this.getUserBalance(userId);
+      const creditInfo = await this.creditService.getCreditScore(userId);
+      userCreditScore = creditInfo.score;
+      
+      if (userCreditScore >= 700) {
+        userLevel = LearningLevel.TRUSTED;
+      } else if (userCreditScore >= 500) {
+        userLevel = LearningLevel.ESTABLISHED;
+      } else if (userCreditScore >= 300) {
+        userLevel = LearningLevel.GROWING;
+      } else {
+        userLevel = LearningLevel.BEGINNER;
+      }
+    }
+
+    const systemPrompt = `You are a budgeting expert for Zimbabwean youth. Create practical spending plans.
+
+Structure your response as JSON with:
+- budget_summary: Brief overview (1-2 sentences)
+- monthly_breakdown: Object with income, total_expenses, savings_amount, remaining_amount, savings_percentage
+- spending_plan: Plan with essential_expenses, important_expenses, optional_expenses, savings_allocation
+- expense_analysis: Brief analysis of expense categories
+- savings_strategy: Brief strategy for financial goals
+- spending_recommendations: Array of 3-4 recommendations
+- action_plan: Array of 3-4 actionable steps
+- tips: Array of 3-4 personalized tips
+- warnings: Any financial risks (if applicable)
+- next_steps: 2-3 next steps
+
+Keep responses concise and actionable.`;
+
+    const totalExpenses = dto.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const savings = dto.monthlyIncome - totalExpenses;
+    const savingsPercentage = dto.monthlyIncome > 0 ? (savings / dto.monthlyIncome) * 100 : 0;
+
+    const userPrompt = `Create a comprehensive spending plan for this user:
+
+User Information:
+- Current Balance: $${userBalance.toFixed(2)}
+- Credit Score: ${userCreditScore} (${userLevel} level)
+- Monthly Income: $${dto.monthlyIncome}
+- Total Expenses: $${totalExpenses}
+- Available for Savings: $${savings.toFixed(2)} (${savingsPercentage.toFixed(1)}% of income)
+
+Expenses Breakdown:
+${dto.expenses.map(exp => `- ${exp.category}: $${exp.amount} (${exp.priority || 'Not specified'})`).join('\n')}
+
+Financial Goals: ${dto.financialGoals || 'Not specified'}
+Interests: ${dto.interests || 'Not specified'}
+
+Context: This is for HiveFund, a platform that digitizes Mukando (rotating savings groups) and helps youth build credit scores. The user may be participating in savings circles, taking loans, or running small businesses.
+
+Create a detailed spending plan that:
+1. Analyzes their current spending
+2. Provides recommendations on how to spend their money wisely
+3. Creates a savings strategy based on their goals
+4. Includes actionable steps to implement the budget
+5. Warns about any financial risks
+
+Focus on creating a practical, actionable spending plan that helps them achieve their financial goals.`;
+
+    try {
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.5, // Lower temperature for faster responses
+        max_tokens: 1200, // Reduced for faster generation
+      });
+
+      const responseContent = completion.choices[0]?.message?.content;
+      if (!responseContent) {
+        throw new BadRequestException('Failed to generate budget plan');
+      }
+
+      const planData = JSON.parse(responseContent);
+
+      return {
+        userBalance: userId ? userBalance : null,
+        userCreditScore: userId ? userCreditScore : null,
+        userLevel: userId ? userLevel : null,
+        budgetName: dto.budgetName || 'My Budget',
+        userInput: {
+          monthlyIncome: dto.monthlyIncome,
+          expenses: dto.expenses,
+          totalExpenses: totalExpenses,
+          financialGoals: dto.financialGoals || null,
+          interests: dto.interests || null,
+        },
+        budget_summary: planData.budget_summary || '',
+        monthly_breakdown: {
+          income: dto.monthlyIncome,
+          total_expenses: totalExpenses,
+          savings_amount: savings,
+          remaining_amount: savings,
+          savings_percentage: parseFloat(savingsPercentage.toFixed(2)),
+          ...planData.monthly_breakdown,
+        },
+        spending_plan: planData.spending_plan || {},
+        expense_analysis: planData.expense_analysis || [],
+        savings_strategy: planData.savings_strategy || '',
+        spending_recommendations: Array.isArray(planData.spending_recommendations) 
+          ? planData.spending_recommendations 
+          : [],
+        action_plan: Array.isArray(planData.action_plan) 
+          ? planData.action_plan 
+          : [],
+        tips: Array.isArray(planData.tips) ? planData.tips : [],
+        warnings: Array.isArray(planData.warnings) ? planData.warnings : [],
+        next_steps: Array.isArray(planData.next_steps) ? planData.next_steps : [],
+        created_at: new Date().toISOString(),
+      };
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        throw new BadRequestException('Invalid response format from AI service');
+      }
+      
+      // Handle OpenAI API errors more gracefully
+      if (error?.message?.includes('Connection') || error?.message?.includes('timeout')) {
+        throw new BadRequestException(
+          'AI service is temporarily unavailable. Please try again in a moment.',
+        );
+      }
+      
+      console.error('OpenAI API Error:', error);
+      throw new BadRequestException(
+        `Failed to generate budget plan: ${error?.message || 'Unknown error'}`,
+      );
+    }
+  }
+
+  // Legacy method - kept for backward compatibility but redirects to new flow
+  async createBudget(dto: CreateBudgetDto, userId?: string) {
+    if (!this.openai) {
+      throw new BadRequestException('OpenAI API key is not configured');
+    }
+
+    // Get user's current balance
+    let userBalance = 0;
+    let userCreditScore = 0;
+    let userLevel = LearningLevel.BEGINNER;
+    
+    if (userId) {
+      userBalance = await this.getUserBalance(userId);
+      const creditInfo = await this.creditService.getCreditScore(userId);
+      userCreditScore = creditInfo.score;
+      
+      if (userCreditScore >= 700) {
+        userLevel = LearningLevel.TRUSTED;
+      } else if (userCreditScore >= 500) {
+        userLevel = LearningLevel.ESTABLISHED;
+      } else if (userCreditScore >= 300) {
+        userLevel = LearningLevel.GROWING;
+      } else {
+        userLevel = LearningLevel.BEGINNER;
+      }
+    }
+
+    const systemPrompt = `You are a budgeting expert for Zimbabwean youth. Create practical budgets.
+
+Structure your response as JSON with:
+- questions_to_ask: Array of 2-3 questions (if info missing)
+- budget_analysis: Brief analysis of financial situation
+- monthly_budget: Object with income, expenses, savings, remaining
+- expense_categories: Array of categories with amounts
+- savings_recommendations: Array of 2-3 strategies
+- action_items: Array of 3-4 steps
+- tips: Array of 3-4 tips
+- warnings: Financial risks (if any)
+- next_steps: 2-3 next steps
+
+Keep responses concise and actionable.`;
+
+    // Build user context
+    let userContext = '';
+    if (userId) {
+      userContext = `User Balance: $${userBalance.toFixed(2)}
+User Credit Score: ${userCreditScore} (${userLevel} level)
+`;
+    }
+
+    const providedInfo = [];
+    if (dto.monthlyIncome) providedInfo.push(`Monthly Income: $${dto.monthlyIncome}`);
+    if (dto.expenses && dto.expenses.length > 0) {
+      providedInfo.push(`Expenses: ${JSON.stringify(dto.expenses)}`);
+    }
+    if (dto.financialGoals) providedInfo.push(`Financial Goals: ${dto.financialGoals}`);
+    if (dto.interests) providedInfo.push(`Interests: ${dto.interests}`);
+
+    const userPrompt = `Create a comprehensive, personalized budget for this user.
+
+${userContext}
+${providedInfo.length > 0 ? `Provided Information:\n${providedInfo.join('\n')}` : 'No information provided - ask questions to understand their situation'}
+
+${dto.budgetName ? `Budget Name: ${dto.budgetName}` : ''}
+
+Context: This is for HiveFund, a platform that digitizes Mukando (rotating savings groups) and helps youth build credit scores. The user may be participating in savings circles, taking loans, or running small businesses.
+
+${!dto.monthlyIncome || !dto.expenses || dto.expenses.length === 0 ? 'IMPORTANT: The user has not provided complete information. Generate questions to ask them about their income, expenses, and financial goals.' : 'The user has provided information. Create a detailed budget based on this.'}
+
+Generate a comprehensive budget plan that helps them manage their money effectively and achieve their goals.`;
+
+    try {
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.5, // Lower temperature for faster responses
+        max_tokens: 1200, // Reduced for faster generation
+      });
+
+      const responseContent = completion.choices[0]?.message?.content;
+      if (!responseContent) {
+        throw new BadRequestException('Failed to generate budget');
+      }
+
+      const budgetData = JSON.parse(responseContent);
+
+      return {
+        userBalance: userId ? userBalance : null,
+        userCreditScore: userId ? userCreditScore : null,
+        userLevel: userId ? userLevel : null,
+        budgetName: dto.budgetName || 'My Budget',
+        questions_to_ask: Array.isArray(budgetData.questions_to_ask) 
+          ? budgetData.questions_to_ask 
+          : [],
+        budget_analysis: budgetData.budget_analysis || '',
+        monthly_budget: budgetData.monthly_budget || {},
+        expense_categories: Array.isArray(budgetData.expense_categories) 
+          ? budgetData.expense_categories 
+          : [],
+        savings_recommendations: Array.isArray(budgetData.savings_recommendations) 
+          ? budgetData.savings_recommendations 
+          : [],
+        action_items: Array.isArray(budgetData.action_items) 
+          ? budgetData.action_items 
+          : [],
+        tips: Array.isArray(budgetData.tips) ? budgetData.tips : [],
+        warnings: Array.isArray(budgetData.warnings) ? budgetData.warnings : [],
+        next_steps: budgetData.next_steps || [],
+        created_at: new Date().toISOString(),
+      };
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        throw new BadRequestException('Invalid response format from AI service');
+      }
+      
+      // Handle OpenAI API errors more gracefully
+      if (error?.message?.includes('Connection') || error?.message?.includes('timeout')) {
+        throw new BadRequestException(
+          'AI service is temporarily unavailable. Please try again in a moment.',
+        );
+      }
+      
+      console.error('OpenAI API Error:', error);
+      throw new BadRequestException(
+        `Failed to create budget: ${error?.message || 'Unknown error'}`,
       );
     }
   }
