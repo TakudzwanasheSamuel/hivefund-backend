@@ -1,154 +1,101 @@
-# 🐝 HiveFund
+# HiveFund API
 
-> **Digitizing Community Savings for Financial Inclusion.**
->
-> *Built for the Econet E-Novate Hackathon (Universities Challenge)*
+The backend service for the HiveFund financial inclusion platform. It handles the core logic for digitizing savings circles (Mukando), calculating credit scores based on transactional behavior, managing the temporal liquidity pool for micro-loans, and processing payments via EcoCash.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Stack](https://img.shields.io/badge/stack-NestJS%20%7C%20Angular%20%7C%20PostgreSQL-orange)
-![Status](https://img.shields.io/badge/status-Hackathon%20Prototype-green)
+## System Overview
 
-## 📋 Overview
+The HiveFund API is a robust backend service designed to empower financial inclusion. It digitizes traditional savings circles, enabling seamless management of contributions, rotations, and payouts. A sophisticated credit scoring engine assesses user creditworthiness based on their transactional history and participation within circles. Furthermore, it manages a temporal liquidity pool, facilitating micro-loans and ensuring efficient fund allocation.
 
-**HiveFund** is a youth-focused financial platform that digitizes **Mukando** (community savings circles) and uses participation history to build an **alternative credit score**.
+## Architecture
 
-By tracking consistent savings behavior, we unlock access to instant micro-loans for young people who lack traditional collateral, creating a self-sustaining ecosystem of saving, lending, and earning.
+The HiveFund API is built as a NestJS modular monolith, designed to be microservices-ready for future scaling. Key feature modules include:
 
----
+*   **Auth Module:** Manages user authentication and authorization, utilizing a JWT strategy to validate tokens issued by Supabase.
+*   **Circles Module:** Implements the core logic for savings circles, including cycle management, member rotation, and payout processing.
+*   **Payments Module:** Handles all payment-related operations, integrating with the EcoCash API for recurring contributions and disbursements.
+*   **Credit Module:** Houses the credit scoring engine, which calculates user credit scores based on payment consistency, participation, and other behavioral metrics.
+*   **Loans Module:** Manages the liquidity pool calculations and the entire lifecycle of micro-loans.
+*   **Marketplace Module:** Facilitates gig booking and manages escrow logic for services offered within the platform.
 
-## 🚀 Key Features
+## Technical Stack
 
-### 1. 🔄 Digital Mukando Circles
+*   **Framework:** NestJS (Node.js)
+*   **Language:** TypeScript
+*   **Database:** PostgreSQL 16 (Managed via Supabase or Local Docker)
+*   **ORM:** TypeORM
+*   **Authentication:** Supabase Auth (JWT Validation Strategy)
+*   **Caching/Queues:** Redis & Bull
+*   **Integrations:** EcoCash API (Payments), Supabase (Auth/DB)
 
-* Create or join private savings groups (4-10 members).
-* **Automated Contributions:** EcoCash auto-deducts weekly/monthly payments.
-* **Transparent Payouts:** "Lottery" or "Rotation" based scheduling ensures fairness.
+## Prerequisites
 
-### 2. 📈 Behavior-Based Credit Score
+Ensure you have the following installed on your development machine:
 
-* We don't look at payslips; we look at **consistency**.
-* **Score Factors:** On-time payments (40%), longevity (20%), and social trust (15%).
-* **Gamified Tiers:** Move from *Seedling* (No loans) to *Trusted* (Growth loans).
+*   Docker Desktop (for local PostgreSQL and Redis setup)
+*   Node.js (v18 or higher)
+*   npm (Node Package Manager)
 
-### 3. 💸 Temporal Liquidity Pool (Lending)
+## Environment Configuration
 
-* Leverages the "idle time" of money sitting in the pool between contribution and payout.
-* Provides instant **Micro-Loans ($10-$50)** and **Short-Term Loans ($50-$200)** to high-scoring members.
+Create a `.env` file in the project root based on the template below and populate it with your specific configuration values.
 
-### 4. 🛒 Youth Marketplace
+```
+DATABASE_URL="postgresql://user:password@host:port/database"
+SUPABASE_URL="https://your-supabase-url.supabase.co"
+SUPABASE_KEY="your-supabase-anon-key"
+ECOCASH_MERCHANT_ID="your-ecocash-merchant-id"
+REDIS_HOST="localhost"
+```
 
-* **Storefront:** Simple e-commerce tools for selling products.
-* **Gig Hub:** Find local gigs (tutoring, design, labor) to earn money for contributions.
+## Installation
 
----
+To set up the project locally, navigate to the project root and run:
 
-## 🛠️ Technical Architecture
+```bash
+npm install
+```
 
-This project is built using a modular microservices architecture to ensure scalability and separation of concerns.
+## Running the Application
 
-### The Stack
+*   **Local Development:**
+    To run the application in development mode with hot-reloading:
 
-* **Backend:** [NestJS](https://nestjs.com/) (Node.js) - *chosen for strict modularity and TypeScript support.*
-* **Database:** [PostgreSQL 16](https://www.postgresql.org/) - *Relational data integrity for financial records.*
-* **ORM:** TypeORM - *Schema management and migrations.*
-* **API Documentation:** Swagger (OpenAPI 3.0).
-* **Payment Simulation:** Custom logic to mock EcoCash webhooks for demo purposes.
+    ```bash
+    npm run start:dev
+    ```
 
-### Microservices (Modules)
+*   **Production Mode:**
+    To run the application in production mode:
 
-* `Auth` - JWT authentication & OTP verification.
-* `Circles` - Core logic for savings groups and payout rotation.
-* `Payments` - Ledger for all transactions (EcoCash integration).
-* `Credit` - Scoring engine that updates in real-time based on events.
-* `Loans` - Loan eligibility checks and lifecycle management.
+    ```bash
+    npm run start:prod
+    ```
 
----
+## Database & Migrations
 
-## ⚡ Getting Started
+For development, TypeORM is configured with `synchronize: true`, which automatically syncs your entity changes with the database schema. For production environments, a proper migration strategy should be implemented.
 
-### Prerequisites
+## API Documentation
 
-* Node.js (v18 or later)
-* Docker Desktop (for the database)
+Once the server is running, the API documentation, powered by Swagger UI, is available at:
 
-### Installation
+```
+http://localhost:3000/api
+```
 
-1. **Clone the repository**
+(Assuming your application runs on port 3000)
 
-   ```bash
-   git clone [https://github.com/TakudzwanasheSamuel/hivefund-backend.git](https://github.com/TakudzwanasheSamuel/hivefund-backend.git)
-   cd hivefund-backend
-   ```
-2. **Install dependencies**
+## Testing
 
-   ```bash
-   npm install
-   ```
-3. **Setup Environment**
-   Create a `.env` file in the root directory:
+To run the unit and end-to-end tests:
 
-   ```env
-   PORT=3000
-   DATABASE_HOST=localhost
-   DATABASE_PORT=5432
-   DATABASE_USER=hive_user
-   DATABASE_PASSWORD=hive_password
-   DATABASE_NAME=hive_fund
-   JWT_SECRET=super_secret_hackathon_key
-   ```
-4. **Setup Database**
+```bash
+# Run all tests
+npm run test
 
-   **Option A: Using Docker (Recommended)**
-   ```bash
-   docker-compose up -d
-   ```
+# Run unit tests
+npm run test:unit
 
-   **Option B: Manual PostgreSQL Setup**
-   ```bash
-   # Connect to PostgreSQL as superuser
-   psql -U postgres
-   
-   # Run the database creation script
-   \i database/create-database.sql
-   
-   # Or from command line:
-   psql -U postgres -f database/create-database.sql
-   ```
-
-   > **Note:** TypeORM will automatically create all tables when the app starts (synchronize: true in development mode)
-
-5. **Run the Application**
-
-   ```bash
-   # Development mode
-   npm run start:dev
-   ```
-
-### 🧪 Running the Demo (Hackathon Mode)
-
-Since we cannot use live EcoCash money during the presentation, we have included a **Simulation Endpoint**:
-
-1. Start the app.
-2. Go to `http://localhost:3000/api/docs`.
-3. Use the `POST /payments/simulate` endpoint.
-4. **Payload:**
-   ```json
-   {
-     "type": "contribution",
-     "amount": 20,
-     "phoneNumber": "+263770000000"
-   }
-   ```
-5. This will trigger a "Successful Payment" event, update the circle progress, and **boost the user's credit score** live.
-
----
-
-## 📚 API Documentation
-
-Once the application is running, full API documentation (Swagger) is available at:
-
-👉 **[http://localhost:3000/api/docs](http://localhost:3000/api/docs)**
-
-This interactive documentation allows you to test all endpoints (Auth, Circles, Loans) directly from the browser.
-
----
+# Run e2e tests
+npm run test:e2e
+```
